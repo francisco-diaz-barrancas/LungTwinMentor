@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LungTwinMentor | 3D Respiratory Decision Simulator</title>
+<style>
+:root{
+  --panel:rgba(8,16,32,.88);
+  --panel2:rgba(15,23,42,.78);
+  --line:rgba(148,163,184,.22);
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --cyan:#67e8f9;
+  --ok:#86efac;
+  --warn:#fbbf24;
+  --bad:#fb7185;
+  --violet:#a78bfa;
+}
+*{box-sizing:border-box}
+body{margin:0;height:100vh;overflow:hidden;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 18% 12%,rgba(14,165,233,.16),transparent 25%),radial-gradient(circle at 82% 18%,rgba(34,197,94,.12),transparent 26%),linear-gradient(180deg,#07111f,#020617 70%,#000)}
+#app{display:grid;grid-template-columns:430px 1fr;height:100vh;width:100vw}
+aside{overflow-y:auto;padding:18px;border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(2,6,23,.96),rgba(8,16,32,.95));scrollbar-width:thin;scrollbar-color:rgba(148,163,184,.25) transparent}
+main{position:relative;min-width:0}
+#threeCanvas{width:100%;height:100%;display:block}
+h1{margin:0 0 6px;font-size:1.18rem;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 35%,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{margin:0 0 16px;color:var(--muted);font-size:.86rem;line-height:1.42}
+.section{margin-bottom:12px;padding:14px;border-radius:17px;border:1px solid var(--line);background:var(--panel);box-shadow:0 15px 28px rgba(0,0,0,.22)}
+.section h2{margin:0 0 10px;font-size:.91rem;color:#dbeafe;display:flex;align-items:center;gap:7px}
+.section h3{margin:12px 0 7px;font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:#93c5fd}
+.control{margin:11px 0}
+label{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;color:#e0f2fe;font-size:.82rem}
+.value{color:var(--cyan);font-variant-numeric:tabular-nums;white-space:nowrap}
+input[type=range],select{width:100%}
+input[type=range]{accent-color:var(--cyan)}
+select,button{border:1px solid var(--line);border-radius:12px;background:#020617;color:var(--text);padding:9px 10px}
+button{width:100%;cursor:pointer;margin-top:8px;font-weight:700;background:rgba(14,165,233,.13);border-color:rgba(103,232,249,.35);color:#a5f3fc;transition:.15s transform,.15s filter}
+button:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btnWarn{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.38);color:#fde68a}
+.btnOk{background:rgba(34,197,94,.16);border-color:rgba(134,239,172,.4);color:#bbf7d0}
+.btnGhost{background:rgba(148,163,184,.08);border-color:rgba(148,163,184,.22);color:#cbd5e1}
+.toggleRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toggleRow button.active{background:rgba(34,197,94,.18);border-color:rgba(134,239,172,.4);color:#bbf7d0}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{border:1px solid var(--line);border-radius:13px;background:var(--panel2);padding:10px;min-height:68px}
+.metric strong{display:block;font-size:1rem;margin-bottom:4px}
+.metric span{display:block;color:var(--muted);font-size:.75rem;line-height:1.22}
+#pattern{display:inline-flex;padding:9px 12px;border:1px solid rgba(134,239,172,.36);background:rgba(134,239,172,.10);border-radius:999px;color:#bbf7d0;font-size:.86rem;font-weight:800}
+#pattern.warning{border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.12);color:#fde68a}
+#pattern.danger{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.12);color:#fecaca}
+.legend{font-size:.77rem;color:var(--muted);line-height:1.45;margin:9px 0 0}
+.caseBox{border:1px solid rgba(103,232,249,.22);background:rgba(14,165,233,.07);border-radius:14px;padding:11px;margin-top:10px}
+.caseTitle{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.caseTitle strong{font-size:.88rem;color:#e0f2fe}
+.caseId{font-size:.7rem;color:#7dd3fc;border:1px solid rgba(103,232,249,.24);border-radius:999px;padding:3px 8px;background:rgba(2,6,23,.35)}
+.caseText{font-size:.8rem;line-height:1.48;color:#cbd5e1}
+.caseText b{color:#fff}
+.dataGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.dataItem{background:rgba(2,6,23,.55);border:1px solid rgba(148,163,184,.14);border-radius:11px;padding:8px}
+.dataItem .k{font-size:.66rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
+.dataItem .v{font-size:.8rem;color:#eef2ff;margin-top:3px}
+.dataItem.full{grid-column:1/-1}
+.checks{display:flex;flex-direction:column;gap:7px}
+.checkItem{display:flex;align-items:flex-start;gap:9px;justify-content:flex-start;background:rgba(2,6,23,.45);border:1px solid rgba(148,163,184,.17);border-radius:11px;padding:8px 9px;color:#cbd5e1;font-size:.78rem}
+.checkItem input{margin-top:2px;accent-color:#67e8f9}
+.feedback{display:none;margin-top:10px;border-radius:14px;border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.52);padding:11px}
+.feedback.visible{display:block}
+.scoreLine{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.scoreCircle{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(103,232,249,.45);font-size:1.25rem;font-weight:900;color:#67e8f9;background:rgba(103,232,249,.08)}
+.feedbackText{font-size:.8rem;line-height:1.46;color:#cbd5e1}
+.feedbackText b{color:#fff}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.tag{font-size:.68rem;border-radius:999px;padding:4px 8px;border:1px solid rgba(148,163,184,.2)}
+.tag.ok{background:rgba(34,197,94,.12);border-color:rgba(134,239,172,.32);color:#bbf7d0}
+.tag.warn{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:#fde68a}
+.tag.bad{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.35);color:#fecaca}
+.pearl{margin-top:7px;padding:8px 9px;border-radius:10px;border:1px solid rgba(167,139,250,.22);background:rgba(167,139,250,.08);font-size:.76rem;color:#ddd6fe;line-height:1.42}
+.pearl:before{content:"Teaching point · ";color:#c4b5fd;font-weight:800}
+.sessionRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sessionCard{background:rgba(2,6,23,.46);border:1px solid rgba(148,163,184,.16);border-radius:12px;padding:9px;text-align:center}
+.sessionCard strong{display:block;font-size:1.05rem;color:#e0f2fe}
+.sessionCard span{font-size:.67rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
+.overlayTop{position:absolute;top:14px;left:14px;right:14px;display:grid;grid-template-columns:minmax(300px,430px) minmax(360px,620px);gap:12px;pointer-events:none}
+.glass{border:1px solid var(--line);background:rgba(2,6,23,.62);backdrop-filter:blur(10px);border-radius:18px;padding:13px 14px;box-shadow:0 16px 32px rgba(0,0,0,.28)}
+.glass h3{font-size:.88rem;margin:0 0 6px}
+.glass p{font-size:.77rem;line-height:1.38;color:#cbd5e1;margin:0}
+#chartCanvas{width:100%;height:180px;border-radius:16px;background:rgba(2,6,23,.74);border:1px solid var(--line);display:block}
+.legend3d{position:absolute;left:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none}
+.pill{font-size:.76rem;color:#cbd5e1;padding:7px 9px;background:rgba(2,6,23,.66);border:1px solid var(--line);border-radius:999px;backdrop-filter:blur(8px)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+#labelLayer{position:absolute;inset:0;pointer-events:none}
+.label3d{position:absolute;transform:translate(-50%,-50%);padding:4px 8px;border-radius:999px;background:rgba(2,6,23,.85);border:1px solid rgba(103,232,249,.25);color:#dff8ff;font-size:12px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.label3d.hidden{display:none}
+@media(max-width:960px){body{overflow:auto}#app{grid-template-columns:1fr;height:auto;min-height:100vh}aside{border-right:none;border-bottom:1px solid var(--line)}main{height:76vh}.overlayTop{grid-template-columns:1fr}.glass:first-child{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+<aside>
+<h1>LungTwinMentor</h1>
+<p class="subtitle">3D respiratory decision simulator for clinical training: ventilation, bronchial tree, alveoli, oxygenation, obstruction, restriction, V/Q mismatch and acute respiratory management.</p>
+
+<div class="section">
+  <h2>🫁 Clinical case</h2>
+  <div class="toggleRow">
+    <button id="newCaseBtn" class="btnOk">New random case</button>
+    <button id="revealBtn" class="btnGhost">Reveal tests</button>
+  </div>
+  <p class="legend">The final diagnosis is hidden. Use the clinical data, physiological parameters and 3D pattern to choose diagnosis and management.</p>
+  <div class="caseBox">
+    <div class="caseTitle"><strong id="caseTitle">—</strong><span class="caseId" id="caseId">—</span></div>
+    <div class="caseText" id="caseText">Press “New random case” to start.</div>
+    <div class="dataGrid" id="caseData"></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>🧠 Decision making</h2>
+  <div class="control">
+    <label for="diagnosisSelect">Primary diagnosis</label>
+    <select id="diagnosisSelect">
+      <option value="">Select one option…</option>
+      <option value="normal">No acute respiratory disease / normal physiology</option>
+      <option value="asthma">Acute asthma exacerbation</option>
+      <option value="copd">COPD exacerbation with air trapping</option>
+      <option value="pneumonia">Pneumonia / alveolar consolidation</option>
+      <option value="embolism">Pulmonary embolism / high V/Q mismatch</option>
+      <option value="ards">ARDS / severe low-compliance respiratory failure</option>
+      <option value="restrictive">Restrictive lung disease / low compliance pattern</option>
+      <option value="heart_failure">Acute heart failure / pulmonary edema</option>
+      <option value="pneumothorax">Pneumothorax</option>
+    </select>
+  </div>
+  <div class="control">
+    <label for="managementSelect">Immediate management</label>
+    <select id="managementSelect">
+      <option value="">Select one option…</option>
+      <option value="observe">Observation, education and outpatient follow-up</option>
+      <option value="bronchodilator_steroids">Inhaled bronchodilator + systemic corticosteroids</option>
+      <option value="niv_bronchodilator">Controlled oxygen + NIV + bronchodilators</option>
+      <option value="antibiotics_oxygen">Oxygen therapy + antibiotics + infection workup</option>
+      <option value="anticoag_ctpa">Anticoagulation pathway + CT pulmonary angiography</option>
+      <option value="ards_bundle">Lung-protective ventilation + ICU/ARDS bundle</option>
+      <option value="rehab_fibrosis">Restrictive disease workup + pulmonary rehabilitation</option>
+      <option value="decompression">Immediate decompression / chest tube pathway</option>
+    </select>
+  </div>
+  <h3>Support actions</h3>
+  <div class="checks">
+    <label class="checkItem"><input type="checkbox" id="aOxygen"> Assess oxygenation: SpO₂, ABG and oxygen target</label>
+    <label class="checkItem"><input type="checkbox" id="aCXR"> Chest X-ray / bedside ultrasound when clinically indicated</label>
+    <label class="checkItem"><input type="checkbox" id="aSpiro"> Peak flow or spirometry pattern when stable</label>
+    <label class="checkItem"><input type="checkbox" id="aInfection"> Infection workup: fever, CBC, CRP/procalcitonin, cultures if severe</label>
+    <label class="checkItem"><input type="checkbox" id="aCTPA"> D-dimer / CT pulmonary angiography pathway for PE suspicion</label>
+    <label class="checkItem"><input type="checkbox" id="aICU"> ICU/ventilatory support escalation when severe</label>
+  </div>
+  <button id="checkBtn" class="btnWarn">Check decision</button>
+  <button id="clearDecisionBtn" class="btnGhost">Clear decision</button>
+  <div id="feedbackPanel" class="feedback">
+    <div class="scoreLine">
+      <div class="scoreCircle" id="scoreCircle">0</div>
+      <div class="feedbackText" id="feedbackText"></div>
+    </div>
+    <div class="tags" id="feedbackTags"></div>
+    <div id="pearls"></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>📊 Session</h2>
+  <div class="sessionRow">
+    <div class="sessionCard"><strong id="sesCases">0</strong><span>Cases</span></div>
+    <div class="sessionCard"><strong id="sesAvg">—</strong><span>Avg score</span></div>
+    <div class="sessionCard"><strong id="sesCorrect">0</strong><span>Correct</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>⚙️ Respiratory scenario</h2>
+  <div class="control">
+    <label for="scenario">Preset <span class="value" id="scenarioValue">Normal</span></label>
+    <select id="scenario">
+      <option value="normal">Normal</option>
+      <option value="asthma">Asthma / bronchoconstriction</option>
+      <option value="copd">COPD / air trapping</option>
+      <option value="restrictive">Restrictive pattern</option>
+      <option value="pneumonia">Pneumonia / consolidation</option>
+      <option value="embolism">Pulmonary embolism / high V/Q</option>
+      <option value="ards">ARDS / low compliance</option>
+    </select>
+  </div>
+  <div class="toggleRow">
+    <button id="alveoliBtn" class="active">Alveoli ON</button>
+    <button id="labelsBtn" class="active">Labels ON</button>
+  </div>
+  <p class="legend">Presets adjust the physiological model automatically. You can still modify each value manually.</p>
+</div>
+
+<div class="section">
+  <h2>🧪 Physiological parameters</h2>
+  <div class="control"><label>Respiratory Rate <span class="value" id="rrValue"></span></label><input id="rr" type="range" min="6" max="40" step="1" value="14"></div>
+  <div class="control"><label>Tidal Volume, VT <span class="value" id="vtValue"></span></label><input id="vt" type="range" min="150" max="900" step="10" value="500"></div>
+  <div class="control"><label>FEV1 <span class="value" id="fev1Value"></span></label><input id="fev1" type="range" min="0.3" max="5.0" step="0.1" value="3.2"></div>
+  <div class="control"><label>FVC <span class="value" id="fvcValue"></span></label><input id="fvc" type="range" min="0.5" max="6.0" step="0.1" value="4.0"></div>
+  <div class="control"><label>Peak Expiratory Flow <span class="value" id="pefValue"></span></label><input id="pef" type="range" min="80" max="750" step="10" value="500"></div>
+  <div class="control"><label>Airway Resistance <span class="value" id="resistanceValue"></span></label><input id="resistance" type="range" min="0" max="100" step="1" value="20"></div>
+  <div class="control"><label>Compliance <span class="value" id="complianceValue"></span></label><input id="compliance" type="range" min="10" max="100" step="1" value="70"></div>
+  <div class="control"><label>SpO₂ <span class="value" id="spo2Value"></span></label><input id="spo2" type="range" min="70" max="100" step="1" value="98"></div>
+  <div class="control"><label>PaO₂ <span class="value" id="pao2Value"></span></label><input id="pao2" type="range" min="35" max="120" step="1" value="95"></div>
+  <div class="control"><label>PaCO₂ <span class="value" id="paco2Value"></span></label><input id="paco2" type="range" min="20" max="80" step="1" value="40"></div>
+  <div class="control"><label>V/Q ratio <span class="value" id="vqValue"></span></label><input id="vq" type="range" min="0.1" max="3.0" step="0.1" value="0.8"></div>
+  <button id="reset">Reset normal values</button>
+</div>
+
+<div class="section">
+  <h2>📘 Educational reading</h2>
+  <div id="pattern">● Normal</div>
+  <p class="legend" id="interpretation"></p>
+</div>
+
+<div class="section">
+  <h2>📈 Derived values</h2>
+  <div class="metrics">
+    <div class="metric"><strong id="ratioMetric">80%</strong><span>FEV1/FVC</span></div>
+    <div class="metric"><strong id="minuteMetric">7.0 L/min</strong><span>Minute ventilation</span></div>
+    <div class="metric"><strong id="workMetric">Moderate</strong><span>Work of breathing</span></div>
+    <div class="metric"><strong id="oxygenMetric">Normal</strong><span>Oxygenation</span></div>
+  </div>
+  <p class="legend">Educational simulator only: it represents physiological trends, not a validated clinical respiratory mechanics model.</p>
+</div>
+</aside>
+
+<main>
+  <canvas id="threeCanvas"></canvas>
+  <div id="labelLayer"></div>
+  <div class="overlayTop">
+    <div class="glass">
+      <h3>Visual map</h3>
+      <p><span class="dot" style="background:#7dd3fc"></span>inspired air · <span class="dot" style="background:#fb7185"></span>oxygen exchange · <span class="dot" style="background:#fbbf24"></span>obstruction/high resistance · <span class="dot" style="background:#a78bfa"></span>V/Q mismatch · <span class="dot" style="background:#94a3b8"></span>stiff or consolidated regions.</p>
+    </div>
+    <div><canvas id="chartCanvas" width="900" height="260"></canvas></div>
+  </div>
+  <div class="legend3d">
+    <span class="pill">Drag to rotate</span>
+    <span class="pill">FEV1/FVC = obstruction</span>
+    <span class="pill">Compliance = lung expansion</span>
+    <span class="pill">V/Q + SpO₂ = oxygenation</span>
+  </div>
+</main>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const state={scenario:'normal',rr:14,vt:500,fev1:3.2,fvc:4.0,pef:500,resistance:20,compliance:70,spo2:98,pao2:95,paco2:40,vq:0.8,alveoli:true,labels:true};
+const ids=['scenario','rr','vt','fev1','fvc','pef','resistance','compliance','spo2','pao2','paco2','vq'];
+const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
+const scenarioValue=document.getElementById('scenarioValue');
+const rrValue=document.getElementById('rrValue'),vtValue=document.getElementById('vtValue'),fev1Value=document.getElementById('fev1Value'),fvcValue=document.getElementById('fvcValue'),pefValue=document.getElementById('pefValue'),resistanceValue=document.getElementById('resistanceValue'),complianceValue=document.getElementById('complianceValue'),spo2Value=document.getElementById('spo2Value'),pao2Value=document.getElementById('pao2Value'),paco2Value=document.getElementById('paco2Value'),vqValue=document.getElementById('vqValue');
+const reset=document.getElementById('reset'),newCaseBtn=document.getElementById('newCaseBtn'),revealBtn=document.getElementById('revealBtn'),checkBtn=document.getElementById('checkBtn'),clearDecisionBtn=document.getElementById('clearDecisionBtn'),alveoliBtn=document.getElementById('alveoliBtn'),labelsBtn=document.getElementById('labelsBtn');
+const pattern=document.getElementById('pattern'),interpretation=document.getElementById('interpretation'),ratioMetric=document.getElementById('ratioMetric'),minuteMetric=document.getElementById('minuteMetric'),workMetric=document.getElementById('workMetric'),oxygenMetric=document.getElementById('oxygenMetric');
+const scenarioLabels={normal:'Normal',asthma:'Asthma / bronchoconstriction',copd:'COPD / air trapping',restrictive:'Restrictive pattern',pneumonia:'Pneumonia / consolidation',embolism:'Pulmonary embolism / high V/Q',ards:'ARDS / low compliance'};
+const presets={
+  normal:{rr:14,vt:500,fev1:3.2,fvc:4.0,pef:500,resistance:20,compliance:70,spo2:98,pao2:95,paco2:40,vq:.8},
+  asthma:{rr:24,vt:420,fev1:1.7,fvc:3.8,pef:260,resistance:78,compliance:65,spo2:93,pao2:72,paco2:43,vq:.7},
+  copd:{rr:22,vt:460,fev1:1.2,fvc:3.4,pef:220,resistance:82,compliance:85,spo2:90,pao2:62,paco2:55,vq:.6},
+  restrictive:{rr:24,vt:300,fev1:2.0,fvc:2.3,pef:390,resistance:25,compliance:28,spo2:94,pao2:75,paco2:38,vq:.8},
+  pneumonia:{rr:26,vt:360,fev1:2.1,fvc:3.0,pef:340,resistance:35,compliance:40,spo2:88,pao2:55,paco2:42,vq:.35},
+  embolism:{rr:26,vt:480,fev1:3.0,fvc:3.9,pef:480,resistance:22,compliance:68,spo2:89,pao2:58,paco2:32,vq:2.2},
+  ards:{rr:30,vt:280,fev1:1.5,fvc:1.9,pef:260,resistance:45,compliance:18,spo2:82,pao2:48,paco2:50,vq:.4}
+};
+
+const CASES=[
+  {
+    id:'LTM-001', title:'Severe wheeze after allergen exposure',
+    scenario:'asthma', diagnosis:'asthma', management:['bronchodilator_steroids'],
+    age:24, sex:'Female', vitals:'RR 28/min · HR 118/min · SpO₂ 92% on room air · BP 128/76',
+    symptoms:'Acute dyspnea, chest tightness, diffuse expiratory wheeze and difficulty speaking after exposure to a cat. No fever or pleuritic chest pain.',
+    history:'Known allergic asthma. Uses salbutamol intermittently. Previous ED visit for exacerbation last year.',
+    tests:'PEF 240 L/min, FEV1/FVC clearly reduced. CXR without consolidation or pneumothorax. ABG: mild hypoxemia without severe CO₂ retention.',
+    expectedActions:{oxygen:true,cxr:false,spiro:true,infection:false,ctpa:false,icu:false},
+    aiClass:'Acute asthma exacerbation with obstructive physiology',
+    confidence:.90,
+    pearls:[
+      'Bronchoconstriction increases airway resistance and reduces peak expiratory flow before major changes in FVC.',
+      'Oxygenation, inhaled SABA/SAMA and systemic corticosteroids are core early actions.',
+      'Silent chest, exhaustion, rising PaCO₂ or altered mental status should trigger ICU escalation.'
+    ]
+  },
+  {
+    id:'LTM-002', title:'Smoker with hypercapnic dyspnea',
+    scenario:'copd', diagnosis:'copd', management:['niv_bronchodilator'],
+    age:71, sex:'Male', vitals:'RR 24/min · HR 106/min · SpO₂ 86% on room air · BP 146/84',
+    symptoms:'Progressive dyspnea, productive cough and increased sputum volume for 3 days. Diffuse wheeze, prolonged expiration and accessory muscle use.',
+    history:'Severe COPD, 50 pack-year smoking history. Home inhalers. Two admissions in the last year.',
+    tests:'FEV1/FVC 35%, PaCO₂ 58 mmHg, PaO₂ 55 mmHg. CXR: hyperinflation without focal consolidation.',
+    expectedActions:{oxygen:true,cxr:true,spiro:true,infection:true,ctpa:false,icu:true},
+    aiClass:'COPD exacerbation with obstructive pattern and hypercapnic risk',
+    confidence:.88,
+    pearls:[
+      'COPD exacerbation combines airflow limitation, air trapping and risk of CO₂ retention.',
+      'Controlled oxygen targets are important; excessive oxygen can worsen hypercapnia in susceptible patients.',
+      'NIV is appropriate when there is respiratory acidosis, severe work of breathing or hypercapnic failure.'
+    ]
+  },
+  {
+    id:'LTM-003', title:'Fever, pleuritic pain and hypoxemia',
+    scenario:'pneumonia', diagnosis:'pneumonia', management:['antibiotics_oxygen'],
+    age:66, sex:'Female', vitals:'RR 30/min · HR 122/min · Temp 39.1°C · SpO₂ 87% on room air',
+    symptoms:'Fever, productive cough, pleuritic left-sided chest pain and increasing breathlessness. Crackles and bronchial breath sounds at the left base.',
+    history:'Type 2 diabetes and hypertension. No known chronic lung disease.',
+    tests:'CXR: left lower-lobe consolidation. WBC 18,000/µL, CRP elevated. ABG: PaO₂ 54 mmHg, PaCO₂ 39 mmHg.',
+    expectedActions:{oxygen:true,cxr:true,spiro:false,infection:true,ctpa:false,icu:false},
+    aiClass:'Community-acquired pneumonia with shunt-like low V/Q physiology',
+    confidence:.91,
+    pearls:[
+      'Consolidated alveoli are perfused but poorly ventilated, generating low V/Q or shunt physiology.',
+      'Early oxygen, severity assessment, chest imaging and timely antibiotics are key educational decisions.',
+      'Spirometry is not useful during an acute infectious episode and may be unsafe or misleading.'
+    ]
+  },
+  {
+    id:'LTM-004', title:'Sudden dyspnea after long-haul flight',
+    scenario:'embolism', diagnosis:'embolism', management:['anticoag_ctpa'],
+    age:48, sex:'Male', vitals:'RR 27/min · HR 124/min · SpO₂ 88% · BP 116/72',
+    symptoms:'Abrupt dyspnea, pleuritic chest pain and mild hemoptysis 24 hours after a long-haul flight. Lungs are mostly clear on auscultation.',
+    history:'Recent knee surgery and reduced mobility. No fever, no known asthma or COPD.',
+    tests:'D-dimer elevated. ECG: sinus tachycardia. CXR: no consolidation. ABG: hypoxemia with low PaCO₂. CT pulmonary angiography requested.',
+    expectedActions:{oxygen:true,cxr:true,spiro:false,infection:false,ctpa:true,icu:false},
+    aiClass:'Pulmonary embolism suspicion with high V/Q mismatch',
+    confidence:.86,
+    pearls:[
+      'Pulmonary embolism creates ventilated but underperfused alveoli, increasing dead-space ventilation and V/Q ratio.',
+      'Clear lungs with sudden hypoxemia, pleuritic pain and risk factors should raise PE suspicion.',
+      'The decision pathway depends on clinical probability, D-dimer and CT pulmonary angiography when indicated.'
+    ]
+  },
+  {
+    id:'LTM-005', title:'Severe bilateral respiratory failure after sepsis',
+    scenario:'ards', diagnosis:'ards', management:['ards_bundle'],
+    age:59, sex:'Female', vitals:'RR 34/min · HR 132/min · SpO₂ 82% despite high-flow oxygen · BP 92/54',
+    symptoms:'Rapidly worsening dyspnea and diffuse crackles after abdominal sepsis. Marked work of breathing and cyanosis.',
+    history:'Recent emergency surgery for perforated diverticulitis. Currently febrile and hypotensive.',
+    tests:'Bilateral diffuse infiltrates, PaO₂/FiO₂ severely reduced, low compliance pattern. No evidence of cardiogenic pulmonary edema.',
+    expectedActions:{oxygen:true,cxr:true,spiro:false,infection:true,ctpa:false,icu:true},
+    aiClass:'ARDS-like acute hypoxemic respiratory failure with low compliance',
+    confidence:.93,
+    pearls:[
+      'ARDS is characterized by severe inflammatory alveolar-capillary injury, low compliance and refractory hypoxemia.',
+      'Educational management includes ICU escalation, lung-protective ventilation and treatment of the underlying cause.',
+      'High tidal volumes can worsen ventilator-induced lung injury in low-compliance lungs.'
+    ]
+  },
+  {
+    id:'LTM-006', title:'Progressive exertional dyspnea and small volumes',
+    scenario:'restrictive', diagnosis:'restrictive', management:['rehab_fibrosis'],
+    age:67, sex:'Male', vitals:'RR 22/min · HR 92/min · SpO₂ 94% at rest, 86% on exertion',
+    symptoms:'Months of progressive exertional dyspnea and dry cough. Fine inspiratory crackles at both lung bases.',
+    history:'Former carpenter with possible occupational dust exposure. No acute fever or wheeze.',
+    tests:'FVC reduced, FEV1/FVC preserved or high, low compliance pattern. HRCT recommended for interstitial lung disease assessment.',
+    expectedActions:{oxygen:true,cxr:true,spiro:true,infection:false,ctpa:false,icu:false},
+    aiClass:'Restrictive physiology compatible with interstitial lung disease pattern',
+    confidence:.82,
+    pearls:[
+      'Restriction reduces lung volumes and compliance while FEV1/FVC is often preserved.',
+      'The physiology differs from obstruction: the problem is expansion, not primarily airway narrowing.',
+      'Stable restrictive disease requires structured workup, HRCT, functional assessment and rehabilitation planning.'
+    ]
+  },
+  {
+    id:'LTM-007', title:'Normal physiology after anxiety episode',
+    scenario:'normal', diagnosis:'normal', management:['observe'],
+    age:31, sex:'Female', vitals:'RR 18/min · HR 96/min · SpO₂ 99% · BP 122/70',
+    symptoms:'Brief episode of dyspnea and tingling during a stressful event. Symptoms improved before assessment. Normal chest auscultation.',
+    history:'No asthma, no smoking, no VTE risk factors and no fever.',
+    tests:'Normal oxygen saturation, normal auscultation, normal PEF and no red flags. ABG not required in this low-risk scenario.',
+    expectedActions:{oxygen:false,cxr:false,spiro:false,infection:false,ctpa:false,icu:false},
+    aiClass:'No acute respiratory disease; normal physiological pattern',
+    confidence:.78,
+    pearls:[
+      'Not every dyspnea episode is pulmonary disease; risk stratification prevents unnecessary testing.',
+      'Normal SpO₂, normal examination and absence of red flags support observation and education.',
+      'Always reassess if symptoms persist, recur or new red flags appear.'
+    ]
+  }
+];
+
+let currentCase=null, testsRevealed=false;
+const session={cases:0,totalScore:0,correct:0};
+
+function applyPreset(name){
+  const p=presets[name];
+  for(const[k,v]of Object.entries(p)) el[k].value=v;
+  syncState();
+}
+
+function applyCasePhysiology(c){
+  applyPreset(c.scenario);
+  // Small random educational variability while preserving the underlying pattern.
+  const variation={rr:2,vt:30,fev1:.15,fvc:.15,pef:20,resistance:5,compliance:5,spo2:2,pao2:4,paco2:3,vq:.1};
+  for(const [k,delta] of Object.entries(variation)){
+    if(el[k]){
+      const current=Number(el[k].value);
+      const noise=(Math.random()-.5)*2*delta;
+      const step=Number(el[k].step)||1;
+      let value=current+noise;
+      const min=Number(el[k].min), max=Number(el[k].max);
+      value=Math.max(min,Math.min(max,value));
+      el[k].value=(Math.round(value/step)*step).toString();
+    }
+  }
+  syncState();
+}
+
+function renderCase(){
+  const c=currentCase;
+  if(!c) return;
+  document.getElementById('caseId').textContent=c.id;
+  document.getElementById('caseTitle').textContent=c.title;
+  document.getElementById('caseText').innerHTML=`<b>${c.sex}, ${c.age} years.</b> ${c.symptoms}<br><br><b>History:</b> ${c.history}`;
+  const rows=[
+    {k:'Vitals',v:c.vitals,full:true},
+    {k:'Visible physiology',v:scenarioLabels[c.scenario]},
+    {k:'SpO₂',v:`${state.spo2}%`},
+    {k:'PaO₂',v:`${state.pao2} mmHg`},
+    {k:'PaCO₂',v:`${state.paco2} mmHg`},
+    {k:'FEV1/FVC',v:`${Math.round(derived().ratio*100)}%`}
+  ];
+  if(testsRevealed) rows.push({k:'Additional tests',v:c.tests,full:true});
+  document.getElementById('caseData').innerHTML=rows.map(r=>`<div class="dataItem ${r.full?'full':''}"><div class="k">${r.k}</div><div class="v">${r.v}</div></div>`).join('');
+}
+
+function randomizeCase(){
+  currentCase=structuredClone(CASES[Math.floor(Math.random()*CASES.length)]);
+  currentCase.age=Math.max(18,currentCase.age+Math.round((Math.random()-.5)*6));
+  testsRevealed=false;
+  applyCasePhysiology(currentCase);
+  clearDecision();
+  renderCase();
+}
+
+function revealTests(){
+  if(!currentCase) return;
+  testsRevealed=true;
+  renderCase();
+}
+
+function labelDiag(k){
+  const L={normal:'normal / no acute respiratory disease',asthma:'acute asthma exacerbation',copd:'COPD exacerbation',pneumonia:'pneumonia / consolidation',embolism:'pulmonary embolism',ards:'ARDS',restrictive:'restrictive lung disease',heart_failure:'acute heart failure',pneumothorax:'pneumothorax'};
+  return L[k]||'no answer';
+}
+function labelMgmt(k){
+  const L={observe:'observation and follow-up',bronchodilator_steroids:'bronchodilator + steroids',niv_bronchodilator:'controlled oxygen + NIV + bronchodilators',antibiotics_oxygen:'oxygen + antibiotics',anticoag_ctpa:'PE anticoagulation/CTPA pathway',ards_bundle:'ICU + ARDS bundle',rehab_fibrosis:'restrictive workup + rehabilitation',decompression:'decompression/chest tube pathway'};
+  return L[k]||'no answer';
+}
+
+function getActions(){
+  return {
+    oxygen:document.getElementById('aOxygen').checked,
+    cxr:document.getElementById('aCXR').checked,
+    spiro:document.getElementById('aSpiro').checked,
+    infection:document.getElementById('aInfection').checked,
+    ctpa:document.getElementById('aCTPA').checked,
+    icu:document.getElementById('aICU').checked
+  };
+}
+
+function checkDecision(){
+  if(!currentCase) return;
+  const diag=document.getElementById('diagnosisSelect').value;
+  const mgmt=document.getElementById('managementSelect').value;
+  const actions=getActions();
+  const exp=currentCase.expectedActions;
+  const tags=[];
+  let score=0;
+
+  if(diag===currentCase.diagnosis){score+=40;tags.push(['✓ Correct diagnosis','ok']);}
+  else if((currentCase.diagnosis==='asthma'||currentCase.diagnosis==='copd') && (diag==='asthma'||diag==='copd')){score+=20;tags.push(['~ Obstructive disease recognized','warn']);}
+  else if((currentCase.diagnosis==='pneumonia'||currentCase.diagnosis==='ards') && (diag==='pneumonia'||diag==='ards')){score+=18;tags.push(['~ Hypoxemic parenchymal pattern recognized','warn']);}
+  else{tags.push(['✗ Incorrect diagnosis','bad']);}
+
+  if(currentCase.management.includes(mgmt)){score+=35;tags.push(['✓ Appropriate immediate management','ok']);}
+  else if(mgmt==='observe' && currentCase.diagnosis!=='normal'){tags.push(['⚠️ Under-treatment risk','bad']);}
+  else{tags.push(['✗ Management should be improved','bad']);}
+
+  // Critical safety penalties
+  if(currentCase.diagnosis==='embolism' && mgmt==='antibiotics_oxygen'){score-=8;tags.push(['⚠️ PE pathway missed','bad']);}
+  if(currentCase.diagnosis==='ards' && !actions.icu){score-=8;tags.push(['⚠️ Severe failure without escalation','bad']);}
+  if((currentCase.diagnosis==='asthma'||currentCase.diagnosis==='copd') && !actions.oxygen){score-=5;tags.push(['⚠️ Oxygenation not assessed','warn']);}
+
+  let actionScore=0;
+  for(const key of Object.keys(exp)){
+    if(actions[key]===exp[key]) actionScore+=4;
+    else if(!actions[key] && exp[key]){
+      const names={oxygen:'oxygenation/ABG',cxr:'chest imaging',spiro:'peak flow/spirometry',infection:'infection workup',ctpa:'PE imaging pathway',icu:'ICU escalation'};
+      tags.push([`Missing ${names[key]}`,'warn']);
+    }
+  }
+  score+=Math.min(25,actionScore);
+  score=Math.max(0,Math.min(100,Math.round(score)));
+
+  session.cases++;
+  session.totalScore+=score;
+  if(diag===currentCase.diagnosis) session.correct++;
+  updateSession();
+
+  const color=score>=80?'#86efac':score>=55?'#fbbf24':'#fb7185';
+  const panel=document.getElementById('feedbackPanel');
+  panel.classList.add('visible');
+  const circle=document.getElementById('scoreCircle');
+  circle.textContent=score;
+  circle.style.color=color;
+  circle.style.borderColor=color;
+  document.getElementById('feedbackText').innerHTML=`<b>Educational model:</b> ${currentCase.aiClass}<br><b>Simulated confidence:</b> ${Math.round(currentCase.confidence*100)}%<br><b>Expected diagnosis:</b> ${labelDiag(currentCase.diagnosis)}. Your answer: ${labelDiag(diag)}.<br><b>Expected management:</b> ${currentCase.management.map(labelMgmt).join(' or ')}. Your answer: ${labelMgmt(mgmt)}.`;
+  document.getElementById('feedbackTags').innerHTML=tags.map(t=>`<span class="tag ${t[1]}">${t[0]}</span>`).join('');
+  document.getElementById('pearls').innerHTML=currentCase.pearls.map(p=>`<div class="pearl">${p}</div>`).join('');
+}
+
+function clearDecision(){
+  document.getElementById('diagnosisSelect').value='';
+  document.getElementById('managementSelect').value='';
+  ['aOxygen','aCXR','aSpiro','aInfection','aCTPA','aICU'].forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('feedbackPanel').classList.remove('visible');
+}
+
+function updateSession(){
+  document.getElementById('sesCases').textContent=session.cases;
+  document.getElementById('sesAvg').textContent=session.cases?Math.round(session.totalScore/session.cases):'—';
+  document.getElementById('sesCorrect').textContent=session.correct;
+}
+
+function syncState(){
+  state.scenario=el.scenario.value;
+  for(const id of ids){if(id!=='scenario')state[id]=Number(el[id].value);}
+  scenarioValue.textContent=scenarioLabels[state.scenario];
+  rrValue.textContent=`${state.rr}/min`;
+  vtValue.textContent=`${state.vt} mL`;
+  fev1Value.textContent=`${state.fev1.toFixed(1)} L`;
+  fvcValue.textContent=`${state.fvc.toFixed(1)} L`;
+  pefValue.textContent=`${state.pef} L/min`;
+  resistanceValue.textContent=`${state.resistance}%`;
+  complianceValue.textContent=`${state.compliance}%`;
+  spo2Value.textContent=`${state.spo2}%`;
+  pao2Value.textContent=`${state.pao2} mmHg`;
+  paco2Value.textContent=`${state.paco2} mmHg`;
+  vqValue.textContent=state.vq.toFixed(1);
+  updateInterpretation();
+  if(currentCase) renderCase();
+}
+
+el.scenario.addEventListener('change',()=>applyPreset(el.scenario.value));
+ids.filter(id=>id!=='scenario').forEach(id=>{el[id].addEventListener('input',syncState);el[id].addEventListener('change',syncState);});
+reset.onclick=()=>{el.scenario.value='normal';applyPreset('normal');};
+newCaseBtn.onclick=randomizeCase;
+revealBtn.onclick=revealTests;
+checkBtn.onclick=checkDecision;
+clearDecisionBtn.onclick=clearDecision;
+
+function derived(){
+  const ratio=state.fev1/Math.max(state.fvc,.1);
+  const minute=state.rr*state.vt/1000;
+  const obstructive=ratio<.70||state.resistance>65||state.pef<300;
+  const restrictive=state.fvc<2.6||state.compliance<35;
+  const hypoxemia=state.spo2<90||state.pao2<60;
+  const hypercapnia=state.paco2>50;
+  const vqMismatch=state.vq<.55||state.vq>1.6;
+  const work=Math.min(100,state.resistance*.45+(100-state.compliance)*.45+Math.max(0,state.rr-16)*1.2);
+  return{ratio,minute,obstructive,restrictive,hypoxemia,hypercapnia,vqMismatch,work};
+}
+
+function updateInterpretation(){
+  const d=derived();
+  let dx='Normal',sev='ok';
+  const notes=[];
+  if(d.hypoxemia&&d.restrictive&&state.compliance<25){dx='Severe restrictive / ARDS-like pattern';sev='danger';notes.push('low compliance with hypoxemia and shallow ventilation');}
+  else if(d.hypoxemia&&d.vqMismatch){dx='V/Q mismatch with hypoxemia';sev='danger';notes.push('ventilation/perfusion mismatch with low PaO₂ or SpO₂');}
+  else if(d.obstructive&&state.resistance>65){dx='Obstructive pattern';sev='warning';notes.push('reduced FEV1/FVC or high airway resistance');}
+  else if(d.restrictive){dx='Restrictive pattern';sev='warning';notes.push('reduced FVC/compliance and limited lung expansion');}
+  else notes.push('ventilation, flow and oxygenation remain within normal educational ranges');
+  if(d.hypercapnia)notes.push('CO₂ retention');
+  if(state.pef<300)notes.push('low peak expiratory flow');
+  if(state.vq>1.6)notes.push('ventilated regions with poor perfusion');
+  if(state.vq<.55)notes.push('perfused regions with poor ventilation');
+  pattern.textContent='● '+dx;
+  pattern.className='';
+  if(sev==='warning')pattern.classList.add('warning');
+  if(sev==='danger')pattern.classList.add('danger');
+  interpretation.textContent=notes.join('; ')+'.';
+  ratioMetric.textContent=`${Math.round(d.ratio*100)}%`;
+  minuteMetric.textContent=`${d.minute.toFixed(1)} L/min`;
+  workMetric.textContent=d.work>70?'High':d.work>40?'Moderate':'Low';
+  oxygenMetric.textContent=d.hypoxemia?'Hypoxemia':state.spo2<94?'Borderline':'Normal';
+}
+
+/* ─────────────────────────────────────────────
+   3D scene from the original LungTwinMentor
+   ───────────────────────────────────────────── */
+const canvas=document.getElementById('threeCanvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x020617,.055);
+const camera=new THREE.PerspectiveCamera(45,1,.1,100);
+camera.position.set(0,1.55,8.8);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.target.set(0,.5,0);
+scene.add(new THREE.HemisphereLight(0xdbeafe,0x04111f,1.1));
+const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(4,7,6);scene.add(key);
+const rim=new THREE.PointLight(0x67e8f9,8,18,2);rim.position.set(-4,2,-4);scene.add(rim);
+const warnLight=new THREE.PointLight(0xfbbf24,0,12,2);warnLight.position.set(0,.4,2.2);scene.add(warnLight);
+
+const root=new THREE.Group();scene.add(root);
+const lungsGroup=new THREE.Group(),airwayGroup=new THREE.Group(),alveoliGroup=new THREE.Group(),particlesGroup=new THREE.Group();
+root.add(lungsGroup,airwayGroup,alveoliGroup,particlesGroup);
+
+const matLungBase=new THREE.MeshPhysicalMaterial({color:0x7dd3fc,transparent:true,opacity:.25,roughness:.35,clearcoat:.6,side:THREE.DoubleSide});
+const matRightLung=matLungBase.clone();matRightLung.color.set(0x93c5fd);
+const matAirway=new THREE.MeshPhysicalMaterial({color:0x38bdf8,roughness:.38,clearcoat:.5});
+const matAlv=new THREE.MeshPhysicalMaterial({color:0x8be9fd,transparent:true,opacity:.45,roughness:.4,clearcoat:.4});
+const matHypoxic=new THREE.MeshPhysicalMaterial({color:0xa78bfa,transparent:true,opacity:.52,roughness:.4,clearcoat:.4});
+const matConsolidation=new THREE.MeshPhysicalMaterial({color:0x94a3b8,transparent:true,opacity:.62,roughness:.62});
+const matO2=new THREE.MeshBasicMaterial({color:0x7dd3fc});
+const matCO2=new THREE.MeshBasicMaterial({color:0xf87171});
+
+function ellipsoid(pos,scale,mat,parent=lungsGroup){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(1,64,36),mat.clone());
+  m.position.copy(pos);m.scale.copy(scale);parent.add(m);return m;
+}
+const leftLung=ellipsoid(new THREE.Vector3(-.82,.05,0),new THREE.Vector3(.72,1.58,.48),matLungBase);
+const rightLung=ellipsoid(new THREE.Vector3(.82,.05,0),new THREE.Vector3(.78,1.62,.50),matRightLung);
+const leftLower=ellipsoid(new THREE.Vector3(-.78,-.65,.18),new THREE.Vector3(.62,.82,.36),matLungBase);
+const rightLower=ellipsoid(new THREE.Vector3(.78,-.68,.18),new THREE.Vector3(.66,.86,.38),matRightLung);
+
+function tube(points,r,mat,parent=airwayGroup){
+  const curve=new THREE.CatmullRomCurve3(points);
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,80,r,18,false),mat.clone());
+  mesh.userData.curve=curve;parent.add(mesh);return mesh;
+}
+const trachea=tube([new THREE.Vector3(0,2.15,.05),new THREE.Vector3(0,1.35,.05),new THREE.Vector3(0,1.0,.05)],.10,matAirway);
+const leftMain=tube([new THREE.Vector3(0,1.0,.05),new THREE.Vector3(-.38,.75,.05),new THREE.Vector3(-.78,.45,.08)],.075,matAirway);
+const rightMain=tube([new THREE.Vector3(0,1.0,.05),new THREE.Vector3(.42,.72,.05),new THREE.Vector3(.82,.45,.08)],.078,matAirway);
+const bronchi=[];
+function branch(side,baseX){
+  const s=side==='L'?-1:1;
+  for(let i=0;i<6;i++){
+    const y=.42-i*.28,endY=y-.15-Math.random()*.08,endX=baseX+s*(.35+(i%3)*.15),z=.12+(i%2)*.12;
+    bronchi.push(tube([new THREE.Vector3(baseX,y,.08),new THREE.Vector3(baseX+s*.18,y-.08,z),new THREE.Vector3(endX,endY,z)],.035-i*.002,matAirway));
+  }
+}
+branch('L',-.75);branch('R',.75);
+
+const diaphragm=new THREE.Mesh(new THREE.SphereGeometry(1,64,24),new THREE.MeshPhysicalMaterial({color:0xfca5a5,transparent:true,opacity:.35,roughness:.5,side:THREE.DoubleSide}));
+diaphragm.position.set(0,-1.55,0);diaphragm.scale.set(1.9,.18,.55);root.add(diaphragm);
+const consolidation=ellipsoid(new THREE.Vector3(-.78,-.55,.42),new THREE.Vector3(.36,.42,.20),matConsolidation,lungsGroup);
+const vqRegion=ellipsoid(new THREE.Vector3(.72,.15,.45),new THREE.Vector3(.42,.54,.18),matHypoxic,lungsGroup);
+
+const alveoli=[];
+function addAlveoli(side,xBase){
+  for(let i=0;i<38;i++){
+    const y=-1.05+Math.random()*2.05,spread=.18+(1.05-Math.abs(y))*.22,x=xBase+(Math.random()-.5)*spread,z=.30+Math.random()*.35,s=.035+Math.random()*.035;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),matAlv.clone());
+    m.position.set(x,y,z);m.scale.setScalar(s);m.userData.baseScale=s;m.userData.side=side;alveoliGroup.add(m);alveoli.push(m);
+  }
+}
+addAlveoli('L',-.82);addAlveoli('R',.82);
+
+const particles=[];
+function addParticle(curve,mat,speed,offset,size=.032){
+  const p=new THREE.Mesh(new THREE.SphereGeometry(size,12,8),mat);
+  p.userData={curve,speed,offset};particlesGroup.add(p);particles.push(p);
+}
+[trachea,leftMain,rightMain,...bronchi].forEach(b=>{for(let k=0;k<4;k++)addParticle(b.userData.curve,matO2,.06+.01*k,Math.random(),.025);});
+for(let k=0;k<24;k++){
+  const p=new THREE.Mesh(new THREE.SphereGeometry(.025,12,8),matCO2);
+  p.userData={free:true,side:k%2?1:-1,offset:Math.random(),speed:.05+.02*Math.random()};
+  particlesGroup.add(p);particles.push(p);
+}
+
+const labelLayer=document.getElementById('labelLayer'),labelDefs=[];
+const labelTargets={'Trachea':trachea,'Bronchi':rightMain,'Left lung':leftLung,'Right lung':rightLung,'Diaphragm':diaphragm,'Alveoli':alveoli[10],'V/Q region':vqRegion,'Consolidation':consolidation};
+const labelOffsets={'Trachea':new THREE.Vector3(0,.35,.05),'Bronchi':new THREE.Vector3(.2,.2,.08),'Left lung':new THREE.Vector3(-.2,.9,.15),'Right lung':new THREE.Vector3(.25,.9,.15),'Diaphragm':new THREE.Vector3(0,.15,.15),'Alveoli':new THREE.Vector3(.1,.12,0),'V/Q region':new THREE.Vector3(.05,.35,.05),'Consolidation':new THREE.Vector3(-.05,.28,.05)};
+function buildLabels(){
+  labelLayer.innerHTML='';labelDefs.length=0;
+  for(const[name,target]of Object.entries(labelTargets)){
+    const div=document.createElement('div');div.className='label3d';div.textContent=name;labelLayer.appendChild(div);
+    labelDefs.push({el:div,target,offset:labelOffsets[name]||new THREE.Vector3()});
+  }
+}
+buildLabels();
+
+const chartCanvas=document.getElementById('chartCanvas'),chartCtx=chartCanvas.getContext('2d');
+function resize(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  const r=chartCanvas.getBoundingClientRect();chartCanvas.width=Math.max(600,Math.floor(r.width*devicePixelRatio));chartCanvas.height=Math.max(220,Math.floor(r.height*devicePixelRatio));chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+window.addEventListener('resize',resize);
+
+function breathPhase(now){
+  const period=60/state.rr,p=(now%period)/period,ratio=state.fev1/Math.max(state.fvc,.1),expDelay=Math.max(0,.70-ratio)*.45+state.resistance/100*.18,inspPortion=Math.max(.28,.44-expDelay*.18);
+  if(p<inspPortion)return .5-.5*Math.cos(Math.PI*p/inspPortion);
+  const ep=(p-inspPortion)/(1-inspPortion);
+  return .5+.5*Math.cos(Math.PI*Math.pow(ep,1+expDelay));
+}
+
+function drawChart(now){
+  const r=chartCanvas.getBoundingClientRect(),w=r.width,h=r.height,ctx=chartCtx;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle='rgba(2,6,23,.94)';ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle='#334155';ctx.lineWidth=1;
+  for(let x=0;x<w;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  ctx.restore();
+  const seconds=10,base=h*.58,d=derived(),amp=h*.24*(state.vt/500)*(state.compliance/70);
+  ctx.beginPath();
+  for(let x=0;x<w;x++){const t=now-seconds+(x/w)*seconds,ph=breathPhase(t),y=base-ph*amp;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.strokeStyle='#67e8f9';ctx.lineWidth=2.3;ctx.shadowColor='#22d3ee';ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;
+  const cx=w-128,cy=h*.55,sx=70,sy=50;
+  ctx.save();ctx.strokeStyle='rgba(134,239,172,.85)';ctx.lineWidth=2;ctx.beginPath();
+  const ratio=d.ratio,concavity=Math.max(0,.72-ratio)*1.8+state.resistance/100*.35;
+  for(let i=0;i<=80;i++){const x=i/80,y=Math.sin(Math.PI*x)*(1-concavity*x*.55),px=cx-sx+x*sx*1.6,py=cy-y*sy;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}
+  for(let i=80;i>=0;i--){const x=i/80,y=-Math.sin(Math.PI*x)*.38,px=cx-sx+x*sx*1.6,py=cy-y*sy;ctx.lineTo(px,py);}
+  ctx.closePath();ctx.stroke();ctx.restore();
+  ctx.fillStyle='#e5e7eb';ctx.font='12px system-ui';
+  ctx.fillText(`Volume-time curve · RR ${state.rr}/min · VT ${state.vt} mL · FEV1/FVC ${Math.round(d.ratio*100)}%`,14,22);
+  ctx.fillText('Flow-volume loop',cx-75,cy+74);
+}
+
+function projectLabels(){
+  labelDefs.forEach(item=>{
+    if(!state.labels){item.el.classList.add('hidden');return;}
+    const world=item.target.localToWorld(item.offset.clone()),proj=world.clone().project(camera);
+    if(proj.z>1||proj.z<-1){item.el.classList.add('hidden');return;}
+    item.el.style.left=`${(proj.x*.5+.5)*canvas.clientWidth}px`;
+    item.el.style.top=`${(-proj.y*.5+.5)*canvas.clientHeight}px`;
+    item.el.classList.remove('hidden');
+  });
+}
+
+function syncVisuals(now){
+  const d=derived(),ph=breathPhase(now),restrictedScale=.86+state.compliance/100*.20,hyperinflation=d.obstructive&&state.compliance>75?.13:0;
+  lungsGroup.scale.set(1+hyperinflation,restrictedScale+ph*.08,1+ph*.10);
+  alveoliGroup.scale.copy(lungsGroup.scale);particlesGroup.scale.copy(lungsGroup.scale);
+  diaphragm.position.y=-1.55-ph*.35+(state.compliance<35?.12:0);
+  const oxy=THREE.MathUtils.clamp((state.spo2-70)/30,0,1),hypColor=new THREE.Color(0xa78bfa),normColor=new THREE.Color(0x7dd3fc);
+  [leftLung,rightLung,leftLower,rightLower].forEach(m=>{m.material.color.copy(hypColor.clone().lerp(normColor,oxy));m.material.opacity=.18+oxy*.13;});
+  const obstruction=THREE.MathUtils.clamp(state.resistance/100+Math.max(0,.70-d.ratio),0,1);
+  [trachea,leftMain,rightMain,...bronchi].forEach((b,i)=>{b.material.color.copy(new THREE.Color(0x38bdf8).lerp(new THREE.Color(0xfbbf24),obstruction));b.scale.setScalar(1-obstruction*.35+(i<3?0:.04*Math.sin(now*3+i)));});
+  const hypox=d.hypoxemia?1:0,vqStress=THREE.MathUtils.clamp(Math.abs(state.vq-.8)/1.4,0,1);
+  vqRegion.visible=d.vqMismatch||state.scenario==='embolism';vqRegion.material.opacity=.15+vqStress*.55;vqRegion.material.color.copy(new THREE.Color(0x7dd3fc).lerp(new THREE.Color(0xa78bfa),vqStress));
+  consolidation.visible=state.scenario==='pneumonia'||state.scenario==='ards'||state.compliance<30;consolidation.material.opacity=state.scenario==='ards'?.55:.42;
+  alveoli.forEach((a,i)=>{const localStress=(i%9===0?vqStress:0)+hypox*.25;a.material.color.copy(new THREE.Color(0x8be9fd).lerp(new THREE.Color(0xa78bfa),Math.min(1,localStress)));const base=a.userData.baseScale;a.scale.setScalar(base*(1+ph*.45*(state.compliance/70))*(state.compliance<30?.75:1));});
+  const flowFactor=Math.max(.25,(state.pef/500)*(1-state.resistance/130));
+  particles.forEach((p,i)=>{
+    if(p.userData.free){const side=p.userData.side,t=(now*p.userData.speed+p.userData.offset)%1;p.position.set(side*(.3+t*.9),-1.0+Math.sin(t*Math.PI)*1.6,.28+.2*Math.sin(now+i));p.visible=state.paco2>45||state.spo2<92;}
+    else{const t=(now*p.userData.speed*flowFactor+p.userData.offset)%1;p.position.copy(p.userData.curve.getPointAt(t));p.visible=flowFactor>.20;}
+  });
+  warnLight.intensity=(obstruction+hypox+vqStress)*3.2;
+  rim.color.set(d.hypoxemia?0xa78bfa:d.obstructive?0xfbbf24:0x67e8f9);
+  root.rotation.y=Math.sin(now*.18)*.04;
+  projectLabels();
+}
+
+function animate(ms){
+  const now=ms/1000;
+  syncVisuals(now);
+  controls.update();
+  renderer.render(scene,camera);
+  drawChart(now);
+  requestAnimationFrame(animate);
+}
+
+alveoliBtn.onclick=()=>{state.alveoli=!state.alveoli;alveoliBtn.classList.toggle('active',state.alveoli);alveoliGroup.visible=state.alveoli;};
+labelsBtn.onclick=()=>{state.labels=!state.labels;labelsBtn.classList.toggle('active',state.labels);labelLayer.style.opacity=state.labels?1:0;};
+
+syncState();
+resize();
+randomizeCase();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
