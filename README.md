@@ -545,26 +545,6 @@ LungTwinMentor/
 └── README.md
 ```
 
-A possible future structure is:
-
-```text
-LungTwinMentor/
-├── frontend/
-│   ├── index.html
-│   ├── css/
-│   ├── js/
-│   │   ├── cases/
-│   │   ├── physiology/
-│   │   ├── scoring/
-│   │   └── visualization/
-│   └── assets/
-├── docs/
-├── screenshots/
-├── tests/
-├── README.md
-└── LICENSE
-```
-
 ---
 
 ## 🔐 Privacy, Security, and Clinical Safety
@@ -585,37 +565,6 @@ Before deploying LungTwinMentor beyond a local educational prototype:
 
 ---
 
-## 🗺️ Roadmap
-
-- [x] Interactive 3D lungs
-- [x] Tracheobronchial visualization
-- [x] Alveolar visualization
-- [x] Animated respiratory cycle
-- [x] Interactive physiological controls
-- [x] Seven clinical training cases
-- [x] Randomized physiological values
-- [x] Hidden diagnostic tests
-- [x] Diagnosis and management workflow
-- [x] Safety-aware scoring
-- [x] Teaching-point feedback
-- [x] Live respiratory charts
-- [x] Session statistics
-- [x] Responsive interface
-- [ ] Persistent learner accounts
-- [ ] Case history across sessions
-- [ ] Instructor dashboard
-- [ ] Exportable performance reports
-- [ ] Multilingual interface
-- [ ] Additional respiratory diseases
-- [ ] Mechanical ventilation scenarios
-- [ ] Arterial blood gas interpretation module
-- [ ] Accessibility audit
-- [ ] Automated testing
-- [ ] Clinical expert validation
-- [ ] Prospective usability study
-- [ ] Public deployment documentation
-
----
 
 ## 🧭 Potential Future Cases
 
@@ -705,9 +654,8 @@ For real clinical situations, follow validated guidelines, institutional procedu
 
 **Project:** LungTwinMentor  
 **Field:** Digital twins, respiratory simulation, medical education, and interactive physiology  
-**Institution:** `Your institution`  
-**Research group:** `Your research group`  
-**Contact:** `your-email@example.com`
+**Institution:** ``  
+**Contact:** `frdiaz@unex.es`
 
 ---
 
